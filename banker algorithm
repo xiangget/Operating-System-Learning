@@ -1,0 +1,185 @@
+#include <iostream>
+#include <vector>
+
+using namespace std;
+
+void banker(vector<int>& R, vector<vector<int> >& A, vector<vector<int> >& C, vector<vector<int> >& reqestSequence) {
+    int m = R.size();//资源类型
+    int n = C.size();//进程数目
+    int N = reqestSequence.size();//资源请求数目
+    int OverNeed = 0;//超出需要的最大范围，溢出
+   
+ 
+    vector<int> V(m); // v 向量表示系统中每种资源的的剩余量,即可用资源
+    vector<vector<int> > Need(n, vector<int>(m));//Need（未来需要量）
+
+    //开始解析构造v向量
+    for (int i = 0; i < m; i++) {
+        int sum = 0;
+        for (int j = 0; j < n; j++) {
+            sum += A[j][i];
+        }
+        V[i] = R[i] - sum;
+    }
+    for (int i = 0; i < n; i++) {
+        for (int j = 0; j < m; j++) {
+            Need[i][j] = C[i][j] - A[i][j];
+        }
+    }
+
+    for (int i = 0; i < N; i++) {
+        int k = reqestSequence[i][0];//解析出进程编号
+//        vector<int> Work(V); //工作集
+        vector<int> Available(V);
+        vector<vector<int> > Allocation(A);
+        vector<vector<int> > TNeed(Need);
+        vector<bool> Success(n,false);
+        vector<int> safeSeq(n);
+         int OverTNeed=0;
+
+        for (int j = 0; j < m; j++) {
+            if (reqestSequence[i][j + 1] > TNeed[k][j] || reqestSequence[i][j + 1] > Available[j]) {
+                OverNeed = 1;
+
+            }
+           
+        }
+
+        if (OverNeed == 0) {
+		int release=1;
+            for (int j = 0; j < m; j++) {
+                Available[j] = Available[j] - reqestSequence[i][j + 1];
+                Allocation[k][j] += reqestSequence[i][j + 1];
+                TNeed[k][j] = TNeed[k][j] - reqestSequence[i][j + 1];
+                	if(TNeed[k][j]>0){
+            		release=0;
+				}
+            }
+    
+            int count=0;
+            int cnt=n;
+            bool found = false; 
+           
+        while(count<n){
+        	found = false; 
+        	for(int p=0;p<n;p++){
+        		if(Success[p]==false){
+        		for(int j=0;j<m;j++){
+        	        if(TNeed[p][j]>Available[j]){
+        		        OverTNeed=1;
+        	            break;
+			    }
+		    }
+		        if(OverTNeed==0){
+
+		    	    found = true;
+		    	    for(int j=0;j<m;j++){
+		    	        Available[j] = Available[j]+Allocation[p][j];//释放资源
+			    	}
+				safeSeq[count++] = p; 
+			
+					// Mark this process as Successed 
+				Success[p] = true; 
+            
+			}
+			}
+			OverTNeed=0;
+		
+        }
+		if(found==false){
+			break;
+		}	
+	}
+		
+		if (found == false) 
+		{ 
+			cout << "1"<<endl; 
+		
+
+		} 
+	 
+
+	// If system is in safe state then 
+	// safe sequence will be calculated and printed
+	else {
+		cout << "0"<<endl;
+		int h;
+		if(release==1) h=1;
+		else h=0;
+	     for ( ; h < n-1 ; h++) 
+		       cout << safeSeq[h] << ","; 
+		cout << safeSeq[h] << endl;
+
+	
+	}
+		   
+            
+        }
+        else {
+            cout << "2" << endl;
+        }
+
+        OverNeed = 0;
+        Available.clear();
+       Allocation.clear();
+        TNeed.clear();
+        Success.clear();
+         safeSeq.clear();
+    }
+}
+
+
+int main()
+{
+    int n, m; // 系统中有 n 个进程、m 种不同类型的资源
+    int N; // 进程请求资源的次数
+    int i, j;
+
+    cin >> n; // 输入进程数量
+    cin >> m; // 输入资源类型数
+
+    vector<int> R(m); // R 向量表示系统中每种资源的的总量
+
+    for (i = 0; i < m; i++) // 对 m 种资源，输入每种资源的总量，保存到向量 R 中
+    {
+        cin >> R[i];
+    }
+
+    vector<vector<int> > C(n, vector<int>(m)); // C 为 Claim 矩阵，即最大需求矩阵，教材上称 Max 矩阵
+    for (i = 0; i < n; i++) // 输入 C 矩阵
+    {
+        for (j = 0; j < m; j++)
+        {
+            cin >> C[i][j];
+        }
+    }
+
+    vector<vector<int> > A(n, vector<int>(m)); // A 为 Allocation 矩阵，即分配矩阵
+    for (i = 0; i < n; i++) // 输入 A 矩阵
+    {
+        for (j = 0; j < m; j++)
+        {
+            cin >> A[i][j];
+        }
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////
+    // 欲针对当前状态做 N 次资源请求测试，故这里一次性输入 N 次资源请求，每次资源请
+    // 求需要输入 m+1 个整数：第 0 个整数表示申请资源的进程号（取值范围：0 至 n-1）;
+    // 第 1 至 m 个整数分别表示当前状态下，该进程对 m 种资源的申请数量。
+    cin >> N; // 输入进程请求资源的次数
+
+    vector<vector<int> > reqestSequence(N, vector<int>(m + 1));
+    for (i = 0; i < N; i++)
+    {
+        for (j = 0; j <= m; j++)
+        {
+            cin >> reqestSequence[i][j];
+        }
+    }
+    //
+    ////////////////////////////////////////////////////////////////////////////////
+    banker(R, A, C, reqestSequence);
+
+    return 0;
+}
